@@ -31,7 +31,7 @@ int get_iterations(float x, float y, int max_iterations, t_fractol *fractol)
 	float y0;
 	float xtemp;
 
-	x0 = 1.5 * (x - fractol->renderer->win_x / 2) / (0.5 * fractol->zoom * fractol->renderer->win_x) + fractol->pos.x;
+	x0 = (x - fractol->renderer->win_x / 2) / (0.5 * fractol->zoom * fractol->renderer->win_x) + fractol->pos.x;
 	y0 = (y - fractol->renderer->win_y / 2) / (0.5 * fractol->zoom * fractol->renderer->win_y) + fractol->pos.y;
 	x = 0.0;
 	y = 0.0;
@@ -44,6 +44,19 @@ int get_iterations(float x, float y, int max_iterations, t_fractol *fractol)
 		cur_iter++;
 	}
 	return (cur_iter);
+}
+
+int blend3(int a, int b, int c, float percent)
+{
+	int color;
+//printf("color scale: %f\n", percent);//REMOVE
+	if (percent >= 0 && percent < 0.33)
+		color = blend(a, b, percent * 3);
+	else if (percent >= 0.33 && percent < 0.66)
+		color = blend(b, c, (percent - 0.33) * 3);
+	else
+		color = blend(c, a, (percent - 0.66) * 3);
+	return (color);
 }
 
 void render2d(t_renderer *renderer, t_fractol *fractol)
@@ -74,15 +87,18 @@ void render2d(t_renderer *renderer, t_fractol *fractol)
 			//float percent = iter / 256;
 			float percent;
 			int color;
-			percent = iter / fractol->iterations;
+			//percent = 3.0 * ((int)iter % (fractol->iterations / 3)) / (fractol->iterations);
 			//percent = (float)x / 1000.0 + iter*0;
 			//percent = (float)(x % 333) / 333.0 + iter*0;
-			/*if (x < 333 && x >= 0)
-				color = blend(0x00FF0000, 0x000000FF, percent);
-			else if (x < 666 && x >= 333)
-				color = blend(0x000000FF, 0x0000FF00, percent);
-			else*/
-				color = blend(0x00FF5000, 0x00005FFF, percent);
+			percent = iter / fractol->iterations;
+			//percent = ((float)y / renderer->win_y) + iter*0;
+//			if (iter < fractol->iterations / 3 && iter >= 0)
+//				color = blend(0x00FF0000, 0x0000FF00, percent);
+//			else if (iter < ((fractol->iterations / 3) * 2) && iter >= fractol->iterations / 3)
+//				color = blend(0x0000FF00, 0x000000FF, percent);
+//			else
+//				color = blend(0x000000FF, 0x00FF0000, percent);
+			color = blend3(0x00FF7000, 0x00FF00DD, 0x0000FFFF, percent);
 
 			//printf("color scale: %f\n", percent);//REMOVE
 			frame_pixel_put(renderer->scene, vec2fc(x, y, color));
@@ -133,7 +149,7 @@ int		mouse_motion_hook(int x, int y, void *param)
 	y -= 500;
 	if (fractol->renderer->last_click.x != -99 && fractol->renderer->last_click.y != -99)
 	{
-		fractol->pos.x -= (x - fractol->renderer->last_click.x) / (fractol->renderer->win_x / 3 * fractol->zoom);
+		fractol->pos.x -= (x - fractol->renderer->last_click.x) / (fractol->renderer->win_x / 2 * fractol->zoom);
 		fractol->pos.y -= (y - fractol->renderer->last_click.y) / (fractol->renderer->win_y / 2 * fractol->zoom);
 		fractol->renderer->last_click.x = x;
 		fractol->renderer->last_click.y = y;
