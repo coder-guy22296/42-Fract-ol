@@ -18,6 +18,7 @@ typedef struct	s_fractol
 	t_renderer	*renderer;
 	t_vec2fc	pos;
 	float		zoom;
+	int			iterations;
 }				t_fractol;
 
 
@@ -30,8 +31,8 @@ int get_iterations(float x, float y, int max_iterations, t_fractol *fractol)
 
 
 
-	x0 = 1.5 * (x - 1000 / 2) / (0.5 * fractol->zoom * 1000) + fractol->pos.x;
-	y0 = (y - 1000 / 2) / (0.5 * fractol->zoom * 1000) + fractol->pos.y;
+	x0 = 1.5 * (x - fractol->renderer->win_x / 2) / (0.5 * fractol->zoom * fractol->renderer->win_x) + fractol->pos.x;
+	y0 = (y - fractol->renderer->win_y / 2) / (0.5 * fractol->zoom * fractol->renderer->win_y) + fractol->pos.y;
 	x = 0.0;
 	y = 0.0;
 	cur_iter = 0;
@@ -67,13 +68,13 @@ void render2d(t_renderer *renderer, t_fractol *fractol)
 		x = 0;
 		while (x < renderer->win_x)
 		{
-			float iter = (float)get_iterations(x, y, 256, fractol);
+			float iter = (float)get_iterations(x, y, fractol->iterations, fractol);
 
 			//printf("iter: %f\n", iter);//REMOVE
 			//float percent = iter / 256;
 			float percent;
 			int color;
-			percent = iter / 256;
+			percent = iter / fractol->iterations;
 			//percent = (float)x / 1000.0 + iter*0;
 			//percent = (float)(x % 333) / 333.0 + iter*0;
 			/*if (x < 333 && x >= 0)
@@ -95,6 +96,47 @@ void render2d(t_renderer *renderer, t_fractol *fractol)
 	mlx_destroy_image(renderer->mlx, renderer->scene->cur_frame.id);
 }
 
+int		key_pressed(int keycode, void *param)
+{
+	t_fractol	*fractol;
+
+	fractol = (t_fractol *)param;
+	if (keycode == UP)
+	{
+		fractol->pos.y -= 0.1/fractol->zoom;
+	}
+	if (keycode == DOWN)
+	{
+		fractol->pos.y += 0.1/fractol->zoom;
+	}
+	if (keycode == LEFT)
+	{
+		fractol->pos.x -= 0.1/fractol->zoom;
+	}
+	if (keycode == RIGHT)
+	{
+		fractol->pos.x += 0.1/fractol->zoom;
+	}
+	if (keycode == PAGE_UP)
+	{
+		fractol->zoom *= 1.1;
+	}
+	if (keycode == PAGE_DOWN)
+	{
+		fractol->zoom /= 1.1;
+	}
+	if (keycode == NUM_8)
+	{
+		fractol->iterations += 16;
+	}
+	if (keycode == NUM_5)
+	{
+		fractol->iterations -= 16;
+	}
+	render2d(fractol->renderer, fractol);
+	return (0);
+}
+
 int main()
 {
 	t_fractol fractol;
@@ -103,11 +145,13 @@ int main()
 	fractol.renderer = new_renderer(render_scene);
 	fractol.pos.x = -0.5;
 	fractol.pos.y = 0;
-	fractol.zoom = 4.0;
+	fractol.zoom = 1.0;
+	fractol.iterations = 64;
 	add_window(fractol.renderer, 1000, 1000, "cyildiri's fract'ol");
 	scene1 = new_scene(perspective_projection, 1000, 1000);
 	fractol.renderer->scene = scene1;
 	render2d(fractol.renderer, &fractol);
+	mlx_hook(fractol.renderer->window, 2, 0, key_pressed, &fractol);
 	mlx_loop(fractol.renderer->mlx);
 	return (0);
 }
