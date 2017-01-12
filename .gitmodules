@@ -1,0 +1,6 @@
+[submodule "libft"]
+	path = libft
+	url = https://github.com/coder-guy22296/42-libft.git
+[submodule "libg"]
+	path = libg
+	url = https://github.com/coder-guy22296/42-graphicsLib
