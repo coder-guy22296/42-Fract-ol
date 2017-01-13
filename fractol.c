@@ -21,9 +21,6 @@ typedef struct	s_fractol
 	int			iterations;
 }				t_fractol;
 
-
-
-
 int get_iterations(float x, float y, int max_iterations, t_fractol *fractol)
 {
 	int cur_iter;
@@ -31,15 +28,18 @@ int get_iterations(float x, float y, int max_iterations, t_fractol *fractol)
 	float y0;
 	float xtemp;
 
-	x0 = (x - fractol->renderer->win_x / 2) / (0.5 * fractol->zoom * fractol->renderer->win_x) + fractol->pos.x;
-	y0 = (y - fractol->renderer->win_y / 2) / (0.5 * fractol->zoom * fractol->renderer->win_y) + fractol->pos.y;
+	x0 = (x - fractol->renderer->win_x / 2)
+		 / (0.5 * fractol->zoom * fractol->renderer->win_x) + fractol->pos.x;
+	y0 = (y - fractol->renderer->win_y / 2)
+		 / (0.5 * fractol->zoom * fractol->renderer->win_y) + fractol->pos.y;
 	x = 0.0;
 	y = 0.0;
 	cur_iter = 0;
-	while (x*x + y*y < 2*2  &&  cur_iter < max_iterations - 1)
+	while (x*x + y*y < 2*2 &&  cur_iter < max_iterations)
 	{
 		xtemp = x*x - y*y + x0;
 		y = 2*x*y + y0;
+		//y = 5*x*y + y0;
 		x = xtemp;
 		cur_iter++;
 	}
@@ -55,16 +55,42 @@ int blend3(int a, int b, int c, float percent)
 	else if (percent >= 0.33 && percent < 0.66)
 		color = blend(b, c, (percent - 0.33) * 3);
 	else
-		color = blend(c, a, (percent - 0.66) * 3);
+		color = blend(c, a, (percent - 0.67) * 3);
 	return (color);
 }
 
-void render2d(t_renderer *renderer, t_fractol *fractol)
+void render_mandelbrot(t_fractol *fractol, t_renderer *renderer)
 {
 	int x;
 	int y;
+	float iter;
+	int color;
+
+	y = 0;
+	while (y < renderer->win_y)
+	{
+		x = 0;
+		while (x < renderer->win_x)
+		{
+			iter = (float)get_iterations(x, y, fractol->iterations, fractol);
+			//ft_putstr("iter: ");
+			//ft_putnbr(iter);
+			//ft_putchar('\n');
+			color = blend3(0x000000FF, 0x00FFFFFF, 0x00000000, (iter / fractol->iterations));
+//			color = blend3(0x00FF7000, 0x00FF00DD, 0x0000FFFF,
+//												(iter / fractol->iterations));
+			frame_pixel_put(renderer->scene, vec2fc(x, y, color));
+			x++;
+		}
+		y++;
+	}
+	frame_pixel_put(renderer->scene, vec2fc(250, 250, 0x00FF0000));
+}
 
 
+void render2d(t_renderer *renderer, t_fractol *fractol)
+{
+	mlx_clear_window(renderer->mlx,renderer->window);
 	renderer->scene->cur_frame.id = mlx_new_image(renderer->mlx,
 												  renderer->win_x,
 												  renderer->win_y);
@@ -74,39 +100,9 @@ void render2d(t_renderer *renderer, t_fractol *fractol)
 				&(renderer->scene->cur_frame.color_depth),
 				&(renderer->scene->cur_frame.line_size),
 				&(renderer->scene->cur_frame.endien));
-	// construct frame
-	y = 0;
-	while (y < renderer->win_y)
-	{
-		x = 0;
-		while (x < renderer->win_x)
-		{
-			float iter = (float)get_iterations(x, y, fractol->iterations, fractol);
+	// render fractal
+	render_mandelbrot(fractol, renderer);
 
-			//printf("iter: %f\n", iter);//REMOVE
-			//float percent = iter / 256;
-			float percent;
-			int color;
-			//percent = 3.0 * ((int)iter % (fractol->iterations / 3)) / (fractol->iterations);
-			//percent = (float)x / 1000.0 + iter*0;
-			//percent = (float)(x % 333) / 333.0 + iter*0;
-			percent = iter / fractol->iterations;
-			//percent = ((float)y / renderer->win_y) + iter*0;
-//			if (iter < fractol->iterations / 3 && iter >= 0)
-//				color = blend(0x00FF0000, 0x0000FF00, percent);
-//			else if (iter < ((fractol->iterations / 3) * 2) && iter >= fractol->iterations / 3)
-//				color = blend(0x0000FF00, 0x000000FF, percent);
-//			else
-//				color = blend(0x000000FF, 0x00FF0000, percent);
-			color = blend3(0x00FF7000, 0x00FF00DD, 0x0000FFFF, percent);
-
-			//printf("color scale: %f\n", percent);//REMOVE
-			frame_pixel_put(renderer->scene, vec2fc(x, y, color));
-			x++;
-		}
-		y++;
-	}
-	//
 	mlx_put_image_to_window(renderer->mlx, renderer->window,
 							renderer->scene->cur_frame.id, 0, 0);
 	mlx_destroy_image(renderer->mlx, renderer->scene->cur_frame.id);
@@ -117,12 +113,40 @@ int		mouse_press_hook(int button, int x, int y, void *param)
 	t_fractol	*fractol;
 
 	fractol = (t_fractol *)param;
-	x -= 500;
-	y -= 500;
+	//x += 250;
+	//y += 250;
 	if (button && x && y)
 		ft_putchar('\0');
-	fractol->renderer->last_click.x = x;
-	fractol->renderer->last_click.y = y;
+	if (button == 1)
+	{
+		fractol->renderer->last_click.x = x;
+		fractol->renderer->last_click.y = y;
+	}
+	if (button == 5 || button == 6)
+	{
+		fractol->zoom *= 1.1;
+		fractol->pos.x -= (x - fractol->renderer->last_click.x) / (fractol->renderer->win_x / 2 * fractol->zoom) + (fractol->renderer->win_x/2 - x) / fractol->zoom/1500;
+		fractol->pos.y -= (y - fractol->renderer->last_click.y) / (fractol->renderer->win_y / 2 * fractol->zoom) + (fractol->renderer->win_y/2 - y) / fractol->zoom/1500;
+		ft_putstr("deltay: ");
+		ft_putnbr(y - fractol->renderer->win_y/2);
+		ft_putstr("deltax: ");
+		ft_putnbr(x - fractol->renderer->win_x/2);
+		ft_putchar('\n');
+		fractol->renderer->last_click.x = x;
+		fractol->renderer->last_click.y = y;
+	}
+	if (button == 4 || button == 7)
+	{
+		fractol->zoom /= 1.1;
+		fractol->pos.x -= (x - fractol->renderer->last_click.x) / (fractol->renderer->win_x / 2 * fractol->zoom) - (fractol->renderer->win_x/2 - x) / fractol->zoom/1500;
+		fractol->pos.y -= (y - fractol->renderer->last_click.y) / (fractol->renderer->win_y / 2 * fractol->zoom) - (fractol->renderer->win_y/2 - y) / fractol->zoom/1500;
+		fractol->renderer->last_click.x = x;
+		fractol->renderer->last_click.y = y;
+	}
+	render2d(fractol->renderer, fractol);
+	ft_putstr("mouse button: ");
+	ft_putnbr(button);
+	ft_putstr("\n");
 	return (0);
 }
 
@@ -143,18 +167,21 @@ int		mouse_release_hook(int button, int x, int y, void *param)
 int		mouse_motion_hook(int x, int y, void *param)
 {
 	t_fractol	*fractol;
-
+// + distance to center * zoom                   (width/2 - x) / zoom
 	fractol = (t_fractol *)param;
-	x -= 500;
-	y -= 500;
-	if (fractol->renderer->last_click.x != -99 && fractol->renderer->last_click.y != -99)
-	{
-		fractol->pos.x -= (x - fractol->renderer->last_click.x) / (fractol->renderer->win_x / 2 * fractol->zoom);
-		fractol->pos.y -= (y - fractol->renderer->last_click.y) / (fractol->renderer->win_y / 2 * fractol->zoom);
+	//x -= 500;
+	//y -= 500;
+//	if (fractol->renderer->last_click.x != -99 && fractol->renderer->last_click.y != -99)
+//	{
+//		fractol->pos.x -= (x - fractol->renderer->last_click.x) / (fractol->renderer->win_x / 2 * fractol->zoom);
+//		fractol->pos.y -= (y - fractol->renderer->last_click.y) / (fractol->renderer->win_y / 2 * fractol->zoom);
 		fractol->renderer->last_click.x = x;
 		fractol->renderer->last_click.y = y;
-		render2d(fractol->renderer, fractol);
-	}
+//		render2d(fractol->renderer, fractol);
+//	}
+
+	//fractol->renderer->last_click.x = x;
+	//fractol->renderer->last_click.y = y;
 	return (0);
 }
 
@@ -164,37 +191,24 @@ int		key_pressed(int keycode, void *param)
 
 	fractol = (t_fractol *)param;
 	if (keycode == UP)
-	{
 		fractol->pos.y -= 0.1/fractol->zoom;
-	}
 	if (keycode == DOWN)
-	{
 		fractol->pos.y += 0.1/fractol->zoom;
-	}
 	if (keycode == LEFT)
-	{
 		fractol->pos.x -= 0.1/fractol->zoom;
-	}
 	if (keycode == RIGHT)
-	{
 		fractol->pos.x += 0.1/fractol->zoom;
-	}
 	if (keycode == PAGE_UP)
-	{
 		fractol->zoom *= 1.1;
-	}
 	if (keycode == PAGE_DOWN)
-	{
 		fractol->zoom /= 1.1;
-	}
 	if (keycode == NUM_8)
-	{
 		fractol->iterations += 16;
-	}
 	if (keycode == NUM_5)
-	{
 		fractol->iterations -= 16;
-	}
+	//ft_putstr("max iterations: ");
+	//ft_putnbr(fractol->iterations);
+	//ft_putchar('\n');
 	render2d(fractol->renderer, fractol);
 	return (0);
 }
