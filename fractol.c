@@ -28,10 +28,10 @@ int get_iterations(float x, float y, int max_iterations, t_fractol *fractol)
 	float y0;
 	float xtemp;
 
-	x0 = (x - fractol->renderer->win_x / 2)
-		 / (0.5 * fractol->zoom * fractol->renderer->win_x) + fractol->pos.x;
-	y0 = (y - fractol->renderer->win_y / 2)
-		 / (0.5 * fractol->zoom * fractol->renderer->win_y) + fractol->pos.y;
+	x0 = 4 * (x - fractol->renderer->win_x / 2)
+		 / (fractol->zoom * fractol->renderer->win_x) + fractol->pos.x;
+	y0 = 4 * (y - fractol->renderer->win_y / 2)
+		 / (fractol->zoom * fractol->renderer->win_y) + fractol->pos.y;
 	x = 0.0;
 	y = 0.0;
 	cur_iter = 0;
@@ -113,36 +113,22 @@ int		mouse_press_hook(int button, int x, int y, void *param)
 	t_fractol	*fractol;
 
 	fractol = (t_fractol *)param;
-	//x += 250;
-	//y += 250;
 	if (button && x && y)
 		ft_putchar('\0');
-	if (button == 1)
-	{
-		fractol->renderer->last_click.x = x;
-		fractol->renderer->last_click.y = y;
-	}
 	if (button == 5 || button == 6)
 	{
 		fractol->zoom *= 1.1;
-		fractol->pos.x -= (x - fractol->renderer->last_click.x) / (fractol->renderer->win_x / 2 * fractol->zoom) + (fractol->renderer->win_x/2 - x) / fractol->zoom/1500;
-		fractol->pos.y -= (y - fractol->renderer->last_click.y) / (fractol->renderer->win_y / 2 * fractol->zoom) + (fractol->renderer->win_y/2 - y) / fractol->zoom/1500;
-		ft_putstr("deltay: ");
-		ft_putnbr(y - fractol->renderer->win_y/2);
-		ft_putstr("deltax: ");
-		ft_putnbr(x - fractol->renderer->win_x/2);
-		ft_putchar('\n');
-		fractol->renderer->last_click.x = x;
-		fractol->renderer->last_click.y = y;
+		fractol->pos.x += (x - fractol->renderer->win_x / 2) * 4.0 / (fractol->renderer->win_x * fractol->zoom) * (1.1 - 1);
+		fractol->pos.y += (y - fractol->renderer->win_y / 2) * 4.0 / (fractol->renderer->win_y * fractol->zoom) * (1.1 - 1);
 	}
 	if (button == 4 || button == 7)
 	{
 		fractol->zoom /= 1.1;
-		fractol->pos.x -= (x - fractol->renderer->last_click.x) / (fractol->renderer->win_x / 2 * fractol->zoom) - (fractol->renderer->win_x/2 - x) / fractol->zoom/1500;
-		fractol->pos.y -= (y - fractol->renderer->last_click.y) / (fractol->renderer->win_y / 2 * fractol->zoom) - (fractol->renderer->win_y/2 - y) / fractol->zoom/1500;
-		fractol->renderer->last_click.x = x;
-		fractol->renderer->last_click.y = y;
+		fractol->pos.x += (x - fractol->renderer->win_x / 2) * 4.0 / (fractol->renderer->win_x * fractol->zoom) * (1 / 1.1 - 1);
+		fractol->pos.y += (y - fractol->renderer->win_y / 2) * 4.0 / (fractol->renderer->win_y * fractol->zoom) * (1 / 1.1 - 1);
 	}
+	fractol->renderer->last_click.x = x;
+	fractol->renderer->last_click.y = y;
 	render2d(fractol->renderer, fractol);
 	ft_putstr("mouse button: ");
 	ft_putnbr(button);
@@ -155,8 +141,8 @@ int		mouse_release_hook(int button, int x, int y, void *param)
 	t_fractol	*fractol;
 
 	fractol = (t_fractol *)param;
-	x -= 500;
-	y -= 500;
+	x -= 250;
+	y -= 250;
 	if (button)
 		ft_putchar('\0');
 	fractol->renderer->last_click.x = -99;
@@ -169,8 +155,8 @@ int		mouse_motion_hook(int x, int y, void *param)
 	t_fractol	*fractol;
 // + distance to center * zoom                   (width/2 - x) / zoom
 	fractol = (t_fractol *)param;
-	//x -= 500;
-	//y -= 500;
+	x -= 250;
+	y -= 250;
 //	if (fractol->renderer->last_click.x != -99 && fractol->renderer->last_click.y != -99)
 //	{
 //		fractol->pos.x -= (x - fractol->renderer->last_click.x) / (fractol->renderer->win_x / 2 * fractol->zoom);
@@ -190,25 +176,17 @@ int		key_pressed(int keycode, void *param)
 	t_fractol	*fractol;
 
 	fractol = (t_fractol *)param;
-	if (keycode == UP)
-		fractol->pos.y -= 0.1/fractol->zoom;
-	if (keycode == DOWN)
-		fractol->pos.y += 0.1/fractol->zoom;
-	if (keycode == LEFT)
-		fractol->pos.x -= 0.1/fractol->zoom;
-	if (keycode == RIGHT)
-		fractol->pos.x += 0.1/fractol->zoom;
-	if (keycode == PAGE_UP)
-		fractol->zoom *= 1.1;
-	if (keycode == PAGE_DOWN)
-		fractol->zoom /= 1.1;
-	if (keycode == NUM_8)
+	if (keycode == NUM_8 && fractol->iterations < 176)
 		fractol->iterations += 16;
-	if (keycode == NUM_5)
+	if (keycode == NUM_5 && fractol->iterations > 15)
 		fractol->iterations -= 16;
-	//ft_putstr("max iterations: ");
-	//ft_putnbr(fractol->iterations);
-	//ft_putchar('\n');
+	if (keycode == R)
+	{
+		fractol->zoom = 1.0;
+		fractol->pos.x = 0;
+		fractol->pos.y = 0;
+		fractol->iterations = 64;
+	}
 	render2d(fractol->renderer, fractol);
 	return (0);
 }
@@ -217,14 +195,13 @@ int main()
 {
 	t_fractol fractol;
 	t_scene		*scene1;
-
 	int winx;
 	int winy;
 
 	winx = 500;
 	winy = 500;
 	fractol.renderer = new_renderer(render_scene);
-	fractol.pos.x = -0.5;
+	fractol.pos.x = 0;
 	fractol.pos.y = 0;
 	fractol.zoom = 1.0;
 	fractol.iterations = 64;
