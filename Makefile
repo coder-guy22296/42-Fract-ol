@@ -57,6 +57,3 @@ test:
 	rm -rf $(OFILES)
 	gcc -Wall -Wextra -Werror -c $(SRC) $(LIBI)
 	gcc -o $(NAME) $(OFILES) $(LIBS)
-
-norm:
-	norminette *.c *.h ./lib*/*.c ./lib*/*.h
