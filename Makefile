@@ -11,7 +11,9 @@
 #******************************************************************************#
 
 NAME = fractol
-SRC = fractol.c
+SRC =   fractol.c\
+		fractals.c\
+		hooks.c
 OFILES = $(SRC:.c=.o)
 
 LIBFT = libft/
